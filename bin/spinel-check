@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd -- "$script_dir/.." && pwd)"
+cd "$repo_root"
+
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+bad=0
+for test in spinel_*.rb; do
+  if ! ruby "$test" >/dev/null; then
+    bad=1
+    just fatal "$test fails under ruby"
+    continue
+  fi
+
+  out="build/${test%.rb}"
+  stdout="$tmp/${test%.rb}.out"
+  stderr="$tmp/${test%.rb}.err"
+  diagnostics="$tmp/${test%.rb}.diagnostics"
+
+  compiled=false
+  if spinel -o "$out" "$test" >"$stdout" 2>"$stderr"; then
+    compiled=true
+  fi
+  grep -Fvx "$test -> $out" "$stderr" >"$diagnostics" || true
+
+  if $compiled && ! [[ -s "$diagnostics" ]] && "$out" >"$stdout" 2>"$stderr"; then
+    just banner "fixed - $test"
+  else
+    just warning "crash - $test"
+  fi
+done
+
+exit "$bad"

@@ -1,0 +1,7 @@
+[env]
+_.file = ".env.local"
+_.path = ['{{config_root}}/bin', '{{config_root}}/build']
+
+[tools]
+just = "latest"
+ruby = "latest"

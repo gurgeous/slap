@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd -- "$script_dir/.." && pwd)"
+cd "$repo_root"
+
+clear
+num="${1:-}"
+if [[ -z "$num" ]]; then
+  num=$(find . -maxdepth 1 -name 'spinel_[0-9]*.rb' -printf '%f\n' |
+    sed -E 's/^spinel_([0-9]+)\.rb$/\1/' |
+    sort -n |
+    tail -1)
+fi
+
+watchexec "ruby spinel_${num}.rb && spinel spinel_${num}.rb -o /tmp/bug && /tmp/bug"

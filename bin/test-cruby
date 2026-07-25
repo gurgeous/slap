@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift(".")
+
+require "stringio"
+
+Dir["test/*_test.rb"].each do |file|
+  out, err = $stdout, $stderr
+  stdout, stderr = StringIO.new, StringIO.new
+  begin
+    begin
+      $stdout, $stderr = stdout, stderr
+      load file
+    ensure
+      $stdout, $stderr = out, err
+    end
+  rescue
+    [stderr, stdout].each { puts _1.string }
+    raise
+  end
+end
