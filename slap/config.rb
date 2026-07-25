@@ -82,6 +82,7 @@ module Slap
     def prepare!
       return if @prepared
       @prepared = true
+      @exit ||= lambda { |status| Kernel.exit(status) }
       @help_flag = add_builtin(["-h", "--help"], "Show this message")
       @version_flag = add_builtin(["-v", "--version"], "Show version") if version
     end

@@ -47,8 +47,8 @@ module Slap
         raise Error, "option '#{switch}=#{param}' does not take a value" if param
         return true
       end
-      raise Error, "option '#{switch}' requires a value" if !param
 
+      raise Error, "option '#{switch}' requires a value" if !param
       parsed = begin
         case kind
         when :float then Float(param)

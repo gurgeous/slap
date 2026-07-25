@@ -19,24 +19,11 @@
 #
 
 module Slap
-  class Error < StandardError; end
-
-  # early exits
-  class HelpRequested < Exception; end # rubocop:disable Lint/InheritException
-  class NakedRequested < Exception; end # rubocop:disable Lint/InheritException
-  class VersionRequested < Exception; end # rubocop:disable Lint/InheritException
-
-  # main entry point
-  def self.parse(argv = ARGV)
-    Main.new.tap { yield _1.config if block_given? }.parse(argv)
-  end
-
   class Main
     attr_reader :config
 
-    def initialize
-      @config = Config.new
-    end
+    def initialize = @config = Config.new
+    def app_name = config.app_name
 
     # Parse argv and turn internal parser outcomes into CLI behavior.
     def parse(argv)
@@ -48,32 +35,45 @@ module Slap
       rescue Error => ex
         warn "#{app_name}: #{ex.message}"
         warn "#{app_name}: try '#{app_name} --help' for more information"
-        do_exit(1, error: ex.message)
+        exit_fn(1, error: ex.message)
       rescue HelpRequested, NakedRequested, VersionRequested => ex
-        case ex
-        when HelpRequested
-          puts Help.new(config)
-        when NakedRequested
-          puts "#{app_name}: try '#{app_name} --help' for more information"
-        when VersionRequested
-          puts "#{app_name} #{config.version}"
-        end
-        do_exit
+        early_exit(ex)
+        exit_fn(0)
       end
     end
 
     protected
 
-    def do_exit(status = 0, error: nil)
-      if (fn = config.exit)
-        (fn.arity == 2) ? fn.call(status, error) : fn.call(status)
-      else
-        exit(status)
+    def early_exit(ex)
+      case ex
+      when HelpRequested
+        puts Help.new(config)
+      when NakedRequested
+        puts "#{app_name}: try '#{app_name} --help' for more information"
+      when VersionRequested
+        puts "#{app_name} #{config.version}"
       end
-      nil
     end
 
-    # one-liners
-    def app_name = config.app_name
+    def exit_fn(status, error: nil)
+      args = [].tap do
+        _1 << status
+        _1 << error if config.exit.arity == 2
+      end
+      config.exit.call(*args)
+      nil
+    end
+  end
+
+  class Error < StandardError; end
+
+  # early exits
+  class HelpRequested < Exception; end # rubocop:disable Lint/InheritException
+  class NakedRequested < Exception; end # rubocop:disable Lint/InheritException
+  class VersionRequested < Exception; end # rubocop:disable Lint/InheritException
+
+  # main entry point
+  def self.parse(argv = ARGV)
+    Main.new.tap { yield _1.config if block_given? }.parse(argv)
   end
 end

@@ -28,10 +28,12 @@ module Slap
       config.flags.each.with_index do |flag, idx|
         buf << separator_text(idx) # sep
 
+        # left
         label = flag.label(color)
         buf << " " * INDENT
         buf << label
 
+        # right
         if flag.help
           buf << " " * (label_width - Util.width(label) + 2)
           indent = INDENT + label_width + 2
