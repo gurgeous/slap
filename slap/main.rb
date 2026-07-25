@@ -49,16 +49,15 @@ module Slap
         warn "#{app_name}: #{ex.message}"
         warn "#{app_name}: try '#{app_name} --help' for more information"
         do_exit(1, error: ex.message)
-      # SPINEL WORKAROUND (spinel_67.rb): a multi-class rescue followed by
-      # `case e` skips the matched branch at runtime.
-      rescue HelpRequested
-        puts Help.new(config)
-        do_exit
-      rescue NakedRequested
-        puts "#{app_name}: try '#{app_name} --help' for more information"
-        do_exit
-      rescue VersionRequested
-        puts "#{app_name} #{config.version}"
+      rescue HelpRequested, NakedRequested, VersionRequested => ex
+        case ex
+        when HelpRequested
+          puts Help.new(config)
+        when NakedRequested
+          puts "#{app_name}: try '#{app_name} --help' for more information"
+        when VersionRequested
+          puts "#{app_name} #{config.version}"
+        end
         do_exit
       end
     end

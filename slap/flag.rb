@@ -4,8 +4,11 @@
 
 module Slap
   class Flag
+    # --foo or -f
     SWITCH_RE = /\A-(\w|-\w[\w-]*)\z/
+    # --foo=bar
     INLINE_RE = /\A-(\w|-\w[\w-]*)=(.*)\z/m
+    # --no-foo
     NEGATE_RE = /\A--no-(\w[\w-]*)\z/
 
     KINDS = %i[bool float int str sym]
@@ -17,13 +20,10 @@ module Slap
       @choices, @kind, @required = choices, kind, required
 
       # extract @help from last string
-      @help = if opts.last && opts.last[0] != "-"
-        opts.pop
+      @switches = opts.dup
+      @help = if switch && !switch.start_with?("-")
+        switches.pop
       end
-      # SPINEL WORKAROUND (spinel_68.rb): assigning the caller-splat Array
-      # directly loses String narrowing in validation during demo compilation.
-      @switches = []
-      @switches.concat(opts)
 
       # Extract meta from the final switch, if written as `--port <int>`.
       @meta = build_meta
@@ -49,18 +49,21 @@ module Slap
       end
       raise Error, "option '#{switch}' requires a value" if !param
 
-      parsed = case kind
-      when :float then Float(param)
-      when :int then Integer(param, 10)
-      when :str then param
-      when :sym then param.to_sym
+      parsed = begin
+        case kind
+        when :float then Float(param)
+        when :int then Integer(param, 10)
+        when :str then param
+        when :sym then param.to_sym
+        end
+      rescue ArgumentError
+        raise Error, "invalid value '#{param}' for option '#{switch}'"
       end
+
       if choices && !choices.include?(parsed)
         raise Error, "invalid value '#{parsed}' for option '#{switch}', must be one of #{choices.join(", ")}"
       end
       parsed
-    rescue ArgumentError
-      raise Error, "invalid value '#{param}' for option '#{switch}'"
     end
 
     #
@@ -77,7 +80,7 @@ module Slap
     def bool? = kind == :bool
     def key = @key ||= switch.sub(/^-+/, "").tr("-", "_").to_sym
     def switch = switches.last
-    def takes_param? = !!meta
+    def takes_param? = !bool?
     alias_method :required?, :required
 
     protected
