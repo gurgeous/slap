@@ -3,5 +3,6 @@ _.file = ".env.local"
 _.path = ['{{config_root}}/bin', '{{config_root}}/build']
 
 [tools]
+bats = "latest"
 just = "latest"
 ruby = "latest"
