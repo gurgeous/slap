@@ -20,6 +20,62 @@ setup() {
   [[ "$output" == *'url="https://example.com"'* ]]
 }
 
+@test "short flags" {
+  run "$BIN" -v -n 8 -m fast https://example.com
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"verbose=true"* ]]
+  [[ "$output" == *"count=8"* ]]
+  [[ "$output" == *'mode="fast"'* ]]
+}
+
+@test "long flags" {
+  run "$BIN" --verbose --count 8 --mode fast https://example.com
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"verbose=true"* ]]
+  [[ "$output" == *"count=8"* ]]
+  [[ "$output" == *'mode="fast"'* ]]
+}
+
+@test "smashed flags" {
+  run "$BIN" -vn 8 --mode fast https://example.com
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"verbose=true"* ]]
+  [[ "$output" == *"count=8"* ]]
+  [[ "$output" == *'mode="fast"'* ]]
+}
+
+@test "inline long value" {
+  run "$BIN" -v --count=8 --mode=fast https://example.com
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"verbose=true"* ]]
+  [[ "$output" == *"count=8"* ]]
+  [[ "$output" == *'mode="fast"'* ]]
+}
+
+@test "smashed flag with attached value" {
+  run "$BIN" -vn8 --mode fast https://example.com
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"verbose=true"* ]]
+  [[ "$output" == *"count=8"* ]]
+  [[ "$output" == *'mode="fast"'* ]]
+}
+
+@test "smashed flag with trailing attached value" {
+  run "$BIN" -vmslow -n 8 https://example.com
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"verbose=true"* ]]
+  [[ "$output" == *"count=8"* ]]
+  [[ "$output" == *'mode="slow"'* ]]
+}
+
+@test "help" {
+  run "$BIN" --help
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"Usage: smoke [options] <url>"* ]]
+  [[ "$output" == *"-m, --mode <mode>  mode"* ]]
+  [[ "$output" == *"-h, --help         Show this message"* ]]
+}
+
 @test "failure" {
   run "$BIN" --mode bogus https://example.com
   [ "$status" -eq 1 ]
