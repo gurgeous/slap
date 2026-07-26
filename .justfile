@@ -13,10 +13,23 @@ demo:
   spinel -I . demo.rb -o build/demo
 
 test:
+  just test-cruby
+  just test-spinel
+  just test-bats
+  just banner "done"
+
+test-bats *ARGS:
+  just banner "test-bats..."
+  spinel -I . test/smoke.rb -o build/test/smoke
+  mise exec -- bats {{ARGS}} --print-output-on-failure test/smoke.bats
+
+test-cruby:
+  just banner "test-cruby..."
   bin/test-cruby
-  just banner "✓ test cruby ✓"
+
+test-spinel:
+  just banner "test-spinel..."
   spin test
-  just banner "✓ test spinel ✓"
 
 test-watch:
   watchexec --clear=reset "just test"

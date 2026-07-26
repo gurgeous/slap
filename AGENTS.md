@@ -8,6 +8,7 @@
 6. Treat String as immutable: use `StringIO buf`, arrays + `join`, substitution, or interpolation. Never add frozen-string comments.
 7. Prefer truthy checks over `nil?` when `false` is not distinct.
 8. Do not change `.rubocop.yml` without asking.
+9. Keep PR/commit text succinct: one or two sentences tops. PR titles should be only a few words.
 
 # Tests
 

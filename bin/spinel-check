@@ -9,7 +9,13 @@ tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
 bad=0
-for test in spinel_*.rb; do
+tests=(spinel_*.rb)
+if [[ ! -e "${tests[0]}" ]]; then
+  just banner "no spinel repros"
+  exit 0
+fi
+
+for test in "${tests[@]}"; do
   if ! ruby "$test" >/dev/null; then
     bad=1
     just fatal "$test fails under ruby"
