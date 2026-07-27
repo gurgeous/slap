@@ -28,7 +28,7 @@ module Slap
       return "" if str.empty?
 
       lines, words = [], []
-      tokens = str.split(/[ \t\r]+|(\n)/).reject(&:empty?) # words and newlines
+      tokens = wrap_tokens(str)
       tokens.each do |word|
         if word == "\n"
           lines << words.join(" ")
@@ -45,6 +45,27 @@ module Slap
       lines << words.join(" ") unless words.empty?
       lines << "" if tokens.last == "\n"
       lines.join("\n")
+    end
+
+    # SPINEL WORKAROUND (spinel_71.rb, spinel_72.rb): Slap-shaped code can lose
+    # String#split and String#each_char.
+    def wrap_tokens(str)
+      tokens, chars = [], []
+      (0...str.length).each do |idx|
+        char = str[idx]
+        if char == "\n"
+          tokens << chars.join unless chars.empty?
+          chars = []
+          tokens << char
+        elsif char == " " || char == "\t" || char == "\r"
+          tokens << chars.join unless chars.empty?
+          chars = []
+        else
+          chars << char
+        end
+      end
+      tokens << chars.join unless chars.empty?
+      tokens
     end
   end
 end

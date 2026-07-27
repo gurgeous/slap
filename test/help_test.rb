@@ -35,9 +35,19 @@ color.separator "Options:"
 color.str "--host <name>", "hostname"
 color_expected = "\e[1;34mUsage:\e[0m \e[1;32mslap\e[0m [options]\n\n\e[1;34mOptions:\e[0m\n  \e[1;32m--host\e[0m \e[1;33m<name>\e[0m  hostname\n  \e[1;32m-h\e[0m, \e[1;32m--help\e[0m     Show this message\n"
 assert_equal color_expected, help_text(color)
-Slap::Help.new(color).to_s.lines.each do |line|
-  raise "colored line too wide" if Slap::Util.width(line.chomp) > 80
+text = Slap::Help.new(color).to_s
+line = []
+# SPINEL WORKAROUND (spinel_73.rb): Slap-shaped code can lose String#lines.
+(0...text.length).each do |idx|
+  char = text[idx]
+  if char == "\n"
+    raise "colored line too wide" if Slap::Util.width(line.join) > 80
+    line = []
+  else
+    line << char
+  end
 end
+raise "colored line too wide" if Slap::Util.width(line.join) > 80
 
 color.color = false
 color_off_expected = "Usage: slap [options]\n\nOptions:\n  --host <name>  hostname\n  -h, --help     Show this message\n"

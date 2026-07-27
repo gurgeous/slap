@@ -57,6 +57,7 @@ name = flag_config.str("-n", "--name <person>", "a name", required: true, choice
 verbose = flag_config.bool("-v", "--verbose", "verbose output")
 port = flag_config.int("--http-port")
 timeout = flag_config.int("--timeout <seconds>", "request timeout")
+output = flag_config.path("--output <path>", "output path")
 url = flag_config.positional "<url>", "URL to fetch"
 omitted = flag_config.str "--omitted"
 explicit_false = flag_config.str "--explicit-false", required: false
@@ -85,6 +86,9 @@ assert_equal nil, port.help
 assert_equal :timeout, timeout.key
 assert_equal "seconds", timeout.meta
 assert_equal true, timeout.takes_param?
+assert_equal :output, output.key
+assert_equal "path", output.meta
+assert_equal true, output.takes_param?
 assert_equal "str", omitted.meta
 assert_equal false, omitted.required?
 assert_equal false, explicit_false.required?
@@ -93,7 +97,7 @@ assert_equal :url, url.key
 assert_equal url, flag_config.lookup[:url]
 assert_equal "<url>", url.meta
 assert_equal "URL to fetch", url.help
-assert_equal 6, flag_config.flags.length
+assert_equal 7, flag_config.flags.length
 assert_equal 1, flag_config.positionals.length
 
 assert_raises(ArgumentError) { flag_config.int "--empty-choices", choices: [] }
@@ -110,16 +114,18 @@ assert_equal true, options[:"2"]
 #
 
 assert_raises(ArgumentError) { Slap::Flag.new(:unknown, ["--unknown"]) }
+assert_raises(ArgumentError) { Slap::Flag.new(:path, ["--path"], default: "tmp") }
+assert_raises(ArgumentError) { flag_config.path "--bad-path-choice", choices: ["tmp"] }
 
 begin
   flag_config.str "--name"
   raise "expected duplicate flag error"
 rescue ArgumentError
 end
-assert_equal 6, flag_config.flags.length
+assert_equal 7, flag_config.flags.length
 
 assert_raises(ArgumentError) { flag_config.bool "-d", "-d" }
-assert_equal 6, flag_config.flags.length
+assert_equal 7, flag_config.flags.length
 
 begin
   flag_config.str "--_args"
@@ -219,8 +225,8 @@ end
 
 flag_config.bool "--help"
 flag_config.bool "-V"
-help = flag_config.flags[6]
-version = flag_config.flags[7]
+help = flag_config.flags[7]
+version = flag_config.flags[8]
 assert_equal :help, help.key
 assert_equal :V, version.key
 

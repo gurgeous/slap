@@ -11,7 +11,7 @@ module Slap
     # --no-foo
     NEGATE_RE = /\A--no-(\w[\w-]*)\z/
 
-    KINDS = %i[bool float int str sym]
+    KINDS = %i[bool float int path str sym]
 
     attr_reader :choices, :default, :help, :kind, :meta, :required, :switches
 
@@ -53,6 +53,7 @@ module Slap
         case kind
         when :float then Float(param)
         when :int then Integer(param, 10)
+        when :path then Pathname.new(param)
         when :str then param
         when :sym then param.to_sym
         end
@@ -133,6 +134,7 @@ module Slap
       when :bool then candidate == true || candidate == false
       when :float then candidate.is_a?(Float)
       when :int then candidate.is_a?(Integer)
+      when :path then candidate.is_a?(Pathname)
       when :str then candidate.is_a?(String)
       when :sym then candidate.is_a?(Symbol)
       end
