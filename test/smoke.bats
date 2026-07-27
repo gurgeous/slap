@@ -12,28 +12,31 @@ setup() {
 }
 
 @test "success" {
-  run "$BIN" -v -n 8 --mode fast https://example.com
+  run "$BIN" -v -n 8 --mode fast --output tmp/out.txt https://example.com
   [ "$status" -eq 0 ]
   [[ "$output" == *"verbose=true"* ]]
   [[ "$output" == *"count=8"* ]]
   [[ "$output" == *'mode="fast"'* ]]
+  [[ "$output" == *'output=#<Pathname:tmp/out.txt>'* ]]
   [[ "$output" == *'url="https://example.com"'* ]]
 }
 
 @test "short flags" {
-  run "$BIN" -v -n 8 -m fast https://example.com
+  run "$BIN" -v -n 8 -m fast -o tmp/out.txt https://example.com
   [ "$status" -eq 0 ]
   [[ "$output" == *"verbose=true"* ]]
   [[ "$output" == *"count=8"* ]]
   [[ "$output" == *'mode="fast"'* ]]
+  [[ "$output" == *'output=#<Pathname:tmp/out.txt>'* ]]
 }
 
 @test "long flags" {
-  run "$BIN" --verbose --count 8 --mode fast https://example.com
+  run "$BIN" --verbose --count 8 --mode fast --output tmp/out.txt https://example.com
   [ "$status" -eq 0 ]
   [[ "$output" == *"verbose=true"* ]]
   [[ "$output" == *"count=8"* ]]
   [[ "$output" == *'mode="fast"'* ]]
+  [[ "$output" == *'output=#<Pathname:tmp/out.txt>'* ]]
 }
 
 @test "smashed flags" {
@@ -72,8 +75,9 @@ setup() {
   run "$BIN" --help
   [ "$status" -eq 0 ]
   [[ "$output" == *"Usage: smoke [options] <url>"* ]]
-  [[ "$output" == *"-m, --mode <mode>  mode"* ]]
-  [[ "$output" == *"-h, --help         Show this message"* ]]
+  [[ "$output" == *"-m, --mode <mode>    mode"* ]]
+  [[ "$output" == *"-o, --output <path>  output path"* ]]
+  [[ "$output" == *"-h, --help           Show this message"* ]]
 }
 
 @test "failure" {

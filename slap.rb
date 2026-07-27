@@ -1,6 +1,7 @@
 # stdlib
 require "io/console"
 require "ostruct"
+require "pathname"
 require "stringio"
 
 # slap

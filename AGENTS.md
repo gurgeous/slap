@@ -12,7 +12,7 @@
 
 # Tests
 
-1. Run `just test` after every change.
+1. Run `just test` after every change, except changes limited to `reduce`.
 2. Announce Spinel workaround/type-sensitive changes before testing.
 
 # Spinel
@@ -20,8 +20,12 @@
 1. Mark concessions with `# SPINEL WORKAROUND:` and cite `spinel_N.rb`.
 2. Keep only repros proven by `spinel -o build/crash-N spinel_N.rb` and, if built, `build/crash-N`.
 3. Headers stay current: bug, bad line if UNREDUCED, Ruby result, Spinel result.
-4. Repros should become minimal, standalone, generic, and stdlib-only as time permits.
-5. Repros prepared for reduction include `# reduce:freeze (do not modify anything below this line)`.
-6. Runtime/wrong-output repros put the freeze marker directly above `raise "FAIL" if/unless ...`.
-7. Compile-failure repros do not need a terminal assertion; put the freeze marker after the code.
-8. Preserve reported C warnings during reduction.
+4. Never reuse a Spinel bug number; use the next number for a distinct or re-expanded issue.
+5. Repros should become minimal, standalone, generic, and stdlib-only as time permits.
+6. Repros must not require `slap` or use `require_relative "slap"`; inline the needed code.
+7. Use `# keep` to protect causal code from reduction. Inline `# keep` preserves that line; a standalone `# keep` preserves the following tail, including the assertion.
+8. Runtime/wrong-output repros put a standalone `# keep` directly above `raise "FAIL" if/unless ...`.
+9. Compile-failure repros do not need a terminal assertion; put a standalone `# keep` after the code.
+10. Preserve reported C warnings during reduction.
+11. Before repro/reduction, record Ruby/Spinel commands, statuses, and full Spinel stderr; candidates must match stderr byte-for-byte.
+12. Inline dependencies one at a time, checking the baseline each time. Stop after a complete pass gains under 50 bytes or 1%, then recheck the final artifact.

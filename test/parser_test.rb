@@ -187,7 +187,7 @@ assert_equal ["="], options[:_args]
 
 options = Slap.parse([
   "--name", "Foo", "--method", "post", "--age", "-10",
-  "--plus", "+30", "--numeric-symbol", "12345", "--ratio", "+9.4", "--scientific", "4e-21", "--verbose",
+  "--plus", "+30", "--numeric-symbol", "12345", "--ratio", "+9.4", "--scientific", "4e-21", "--output", "tmp/out.txt", "--verbose",
   "--no-inversed",
 ]) do |o|
   o.str "--name"
@@ -197,6 +197,7 @@ options = Slap.parse([
   o.sym "--numeric-symbol"
   o.float "--ratio"
   o.float "--scientific"
+  o.path "--output"
   o.bool "--verbose"
   o.bool "--quiet"
   o.bool "--inversed", default: true
@@ -209,6 +210,7 @@ assert_equal 30, options[:plus]
 assert_equal :"12345", options[:numeric_symbol]
 assert_equal 9.4, options[:ratio]
 assert_equal 4e-21, options[:scientific]
+assert_equal Pathname.new("tmp/out.txt"), options[:output]
 assert_equal true, options[:verbose]
 assert_equal false, options[:quiet]
 assert_equal false, options[:inversed]
@@ -230,6 +232,7 @@ options = Slap.parse([]) do |o|
   o.str "--str", default: "hello"
   o.int "--int", default: 12
   o.float "--float", default: 1.25
+  o.path "--path", default: Pathname.new("tmp/default")
   o.sym "--sym", default: :fast
   o.bool "--bool"
   o.bool "--enabled", default: true
@@ -240,6 +243,7 @@ end
 assert_equal "hello", options[:str]
 assert_equal 12, options[:int]
 assert_equal 1.25, options[:float]
+assert_equal Pathname.new("tmp/default"), options[:path]
 assert_equal :fast, options[:sym]
 assert_equal false, options[:bool]
 assert_equal true, options[:enabled]
@@ -250,16 +254,18 @@ assert_equal nil, options[:nil]
 # choices
 #
 
-options = Slap.parse(["--str", "red", "--int", "2", "--float", "2.5", "--sym", "fast"]) do |o|
+options = Slap.parse(["--str", "red", "--int", "2", "--float", "2.5", "--path", "tmp/a", "--sym", "fast"]) do |o|
   o.str "--str", choices: %w[red blue]
   o.int "--int", choices: [1, 2]
   o.float "--float", choices: [1.5, 2.5]
+  o.path "--path", choices: [Pathname.new("tmp/a"), Pathname.new("tmp/b")]
   o.sym "--sym", choices: %i[slow fast]
 end
 
 assert_equal "red", options[:str]
 assert_equal 2, options[:int]
 assert_equal 2.5, options[:float]
+assert_equal Pathname.new("tmp/a"), options[:path]
 assert_equal :fast, options[:sym]
 
 puts "ok"

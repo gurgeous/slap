@@ -48,6 +48,10 @@ module Slap
       add_flag(Flag.new(:int, opts, default:, required:, choices:))
     end
 
+    def path(*opts, default: nil, required: false, choices: nil)
+      add_flag(Flag.new(:path, opts, default:, required:, choices:))
+    end
+
     def str(*opts, default: nil, required: false, choices: nil)
       add_flag(Flag.new(:str, opts, default:, required:, choices:))
     end
@@ -59,6 +63,7 @@ module Slap
     # long-form aliases
     alias_method :boolean, :bool
     alias_method :integer, :int
+    alias_method :pathname, :path
     alias_method :positional, :pos
     alias_method :separator, :sep
     alias_method :string, :str
