@@ -4,10 +4,10 @@ default:
 check: lint test
 
 fmt:
-  rubocop -a
+  bundle exec rubocop -a
 
 lint:
-  rubocop
+  bundle exec rubocop
 
 demo:
   spinel -I . demo.rb -o build/demo
@@ -39,8 +39,8 @@ test-watch:
 #
 
 spinel-pull:
-  cd ../spinel && git pull && make deps && make && sudo make install
-  just spinel-check
+  cd ../spinel && git pull
+  just spinel-install
 
 spinel-check:
   bin/spinel-check
@@ -48,6 +48,17 @@ spinel-check:
 # run spinel against one spine bug, or latest bug
 spinel-watch *ARGS:
   bin/spinel-watch "{{ARGS}}"
+
+#
+# ci
+#
+
+ci: spinel-install check
+
+spinel-install:
+  git clone https://github.com/matz/spinel.git ../spinel
+  (cd ../spinel && make deps && make)
+  spinel --version
 
 #
 # banner

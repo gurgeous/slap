@@ -186,7 +186,7 @@ end
 class Oracle
   attr_reader :prefix, :source_marker
 
-# head/tail: see split_protected_tail. tail is appended internally before
+  # head/tail: see split_protected_tail. tail is appended internally before
   # every ruby/spinel run so callers only ever deal with the reducible
   # head.
   def initialize(head, prefix: "", tail: "")
@@ -387,7 +387,6 @@ class Reducer
       end.map(&:value)
       accepted = results.compact.first
       return accepted if accepted
-
     end
     nil
   end

@@ -1,6 +1,9 @@
 [env]
 _.file = ".env.local"
-_.path = ['{{config_root}}/bin', '{{config_root}}/build']
+_.path = ['{{config_root}}/bin', '{{config_root}}/build', '{{config_root}}/../spinel/bin']
+
+[hooks]
+postinstall = ["bundle install"]
 
 [tools]
 bats = "latest"
