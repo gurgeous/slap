@@ -1,8 +1,10 @@
+[![test](https://github.com/gurgeous/slap/actions/workflows/ci.yml/badge.svg)](https://github.com/gurgeous/slap/actions/workflows/ci.yml)
+
 # Slap
 
 Slap is a [spinel](https://github.com/matz/spinel) library for parsing cli arguments. `slap` takes the best bits from [slop](https://github.com/leejarvis/slop) and [clap](https://github.com/clap-rs/clap).
 
-### Do Not Use
+### Caution
 
 Both spinel and slap are alpha quality as of July '26. Slap is a proof of concept and flushed out many real spinel bugs. I hope to release slap once spinel is a bit further along.
 
@@ -15,8 +17,8 @@ Both spinel and slap are alpha quality as of July '26. Slap is a proof of concep
 - flags can be `required:`, have `default:`, or have enum `choices:`
 - returns OpenStruct (not hash)
 
-The only remaining feature I want is `o.path` (Pathname), which I don't think spinel supports. If there is interest I suppose I could release this as a rubygem, though there are already many great cli arg gems.
- 
+If there is interest I can release this as a rubygem, though there are already many great cruby cli gems.
+
 ### Usage
 
 ```ruby
@@ -29,6 +31,7 @@ options = Slap.parse do |o|
   o.str "-d", "--data", "HTTP POST data"
   o.bool "-L", "--location", "follow redirects"
   o.int "-m", "--max-time <seconds>", "maximum transfer time"
+  o.path "-o", "--output <filename>", "where to save file"
   o.separator
 
   o.bool "--force", "ignore cached responses"
