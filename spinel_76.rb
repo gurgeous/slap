@@ -17,41 +17,9 @@
 #   build/crash-76
 #
 
-require "io/console"
 require "ostruct"
 require "pathname"
-require "stringio"
 
-# >>> slap/color.rb
-#
-# A simple color toggle that can format text. If unset infer from stdout.tty.
-#
-
-module Slap
-  class Color
-    attr_reader :enabled
-    alias_method :enabled?, :enabled
-
-    def initialize(enabled)
-      @enabled = enabled.nil? ? $stdout.tty? : enabled
-    end
-
-    # one-liners
-    def blue(str) = paint(str, 34)
-    def cyan(str) = paint(str, 36)
-    def green(str) = paint(str, 32)
-    def magenta(str) = paint(str, 35)
-    def red(str) = paint(str, 31)
-    def yellow(str) = paint(str, 33)
-
-    protected
-
-    def paint(str, code)
-      enabled? ? "\e[1;#{code}m#{str}\e[0m" : str
-    end
-  end
-end
-# <<< slap/color.rb
 # >>> slap/config.rb
 #
 # Config users setup with `Slap.parse`. Records flags, positionals, help text,
@@ -60,15 +28,15 @@ end
 
 module Slap
   class Config
-    attr_accessor :app_name, :banner, :color, :exit, :help, :naked, :version
-    attr_reader :flags, :help_flag, :lookup, :positionals, :separators, :version_flag
+    attr_accessor :app_name, :banner, :exit, :help, :naked, :version
+    attr_reader :flags, :lookup, :positionals
     alias_method :naked?, :naked
 
     def initialize
       @app_name = File.basename($PROGRAM_NAME)
       @naked = true
       @lookup = {}
-      @flags, @positionals, @separators = [], [], []
+      @flags, @positionals = [], []
     end
 
     # Add a positional param declared as `<url>`.
@@ -77,13 +45,6 @@ module Slap
         raise ArgumentError, "duplicate positional #{_1.key}" if key?(_1.key)
         positionals << _1
         lookup[_1.key] = _1
-      end
-    end
-
-    # Add separator text at the current point in generated help.
-    def sep(text = "")
-      [flags.length, text].tap do
-        separators << _1
       end
     end
 
@@ -120,14 +81,13 @@ module Slap
     alias_method :integer, :int
     alias_method :pathname, :path
     alias_method :positional, :pos
-    alias_method :separator, :sep
     alias_method :string, :str
     alias_method :symbol, :sym
 
     # handy helpers
     def defaults
       flags.filter_map do
-        next if _1.required || _1 == help_flag || _1 == version_flag
+        next if _1.required
         [_1.key, _1.default]
       end.to_h
     end
@@ -143,18 +103,9 @@ module Slap
       return if @prepared
       @prepared = true
       @exit ||= lambda { |status| Kernel.exit(status) }
-      @help_flag = add_builtin(["-h", "--help"], "Show this message")
-      @version_flag = add_builtin(["-v", "--version"], "Show version") if version
     end
 
     protected
-
-    # Add help/version flags, but only for switches the user did not override.
-    def add_builtin(switches, help_text)
-      unused = switches.select { !flag?(_1) }
-      return if unused.empty?
-      add_flag(Flag.new(:bool, unused + [help_text]))
-    end
 
     def add_flag(flag)
       # dup check
@@ -249,10 +200,10 @@ module Slap
     # rendering
     #
 
-    def label(color)
-      label = switches.map { color.green(_1) }.join(", ")
+    def label
+      label = switches.join(", ")
       return label unless takes_param?
-      "#{label} #{color.yellow("<#{meta}>")}"
+      "#{label} <#{meta}>"
     end
 
     # one-liners
@@ -320,82 +271,6 @@ module Slap
   end
 end
 # <<< slap/flag.rb
-# >>> slap/help.rb
-#
-# Renders the generated help text. Most of the fiddly work here is keeping
-# columns aligned while ANSI color is present.
-#
-
-module Slap
-  class Help
-    INDENT = 2
-
-    attr_reader :config, :width
-
-    def initialize(config, width = nil)
-      @config = config
-      @width = (width || Util.termwidth).clamp(60, 100)
-    end
-
-    # Render generated help, unless the caller supplied complete help text.
-    def to_s
-      return config.help if config.help
-
-      # usage: xyz (banner)
-      buf = StringIO.new
-      buf << banner
-      buf << "\n\n"
-
-      # Render each flag with aligned switch labels and wrapped help text.
-      label_width = widest_label
-      config.flags.each.with_index do |flag, idx|
-        buf << separator_text(idx) # sep
-
-        # left
-        label = flag.label(color)
-        buf << " " * INDENT
-        buf << label
-
-        # right
-        if flag.help
-          buf << " " * (label_width - Util.width(label) + 2)
-          indent = INDENT + label_width + 2
-          buf << Util.wrap(flag.help, width - indent).gsub("\n", "\n#{" " * indent}")
-        end
-        buf << "\n"
-      end
-      buf << separator_text(config.flags.length)
-
-      buf.string
-    end
-
-    # Build the usage line from the configured app name and positionals.
-    def banner
-      text = config.banner
-      text ||= [color.blue("Usage:"), color.green(config.app_name), "[options]"].tap do
-        _1.push(*config.positionals.map(&:meta))
-      end.join(" ")
-      Util.wrap(text, width)
-    end
-
-    # Render separator text at its recorded position between flags.
-    def separator_text(position)
-      StringIO.new.tap do |buf|
-        config.separators.each do |(pos, str)|
-          if pos == position
-            buf << color.blue(str)
-            buf << "\n"
-          end
-        end
-      end.string
-    end
-
-    # one-liners
-    def color = @color ||= Color.new(config.color)
-    def widest_label = config.flags.map { Util.width(_1.label(color)) }.max
-  end
-end
-# <<< slap/help.rb
 # >>> slap/main.rb
 #
 # Main entry point and parsing
@@ -444,14 +319,7 @@ module Slap
     protected
 
     def early_exit(ex)
-      case ex
-      when HelpRequested
-        puts Help.new(config)
-      when NakedRequested
-        puts "#{app_name}: try '#{app_name} --help' for more information"
-      when VersionRequested
-        puts "#{app_name} #{config.version}"
-      end
+      nil
     end
 
     def exit_fn(status, error: nil)
@@ -542,7 +410,6 @@ module Slap
 
       # -x or --xyz?
       if (flag = config.flag(switch))
-        builtin!(flag)
         param = queue.shift if flag.takes_param? && separator.empty?
         options[flag.key] = flag.parse(switch, param)
         return
@@ -569,8 +436,6 @@ module Slap
         switch = "-#{group[idx]}"
         flag = config.flag(switch)
         raise Error, "unexpected argument '#{group}' found" unless flag
-        builtin!(flag)
-
         # For `-qnLee`, `Lee` belongs to `-n`; for `-qn Lee`, shift the queue.
         if flag.takes_param?
           param = if idx + 1 < group.length
@@ -590,11 +455,6 @@ module Slap
     #
     # helpers
     #
-
-    def builtin!(flag)
-      raise HelpRequested if flag == config.help_flag
-      raise VersionRequested if flag == config.version_flag
-    end
 
     def find_negated_flag(switch)
       if (m = Flag::NEGATE_RE.match(switch))
@@ -637,58 +497,6 @@ module Slap
   end
 end
 # <<< slap/positional.rb
-# >>> slap/util.rb
-#
-# Shared helpers
-#
-
-module Slap
-  module Util
-    module_function
-
-    ANSI_RE = /\e\[[\d;]*m/
-
-    # Calculate terminal width, defaulting to 80.
-    def termwidth
-      width = 80
-      if $stdout.tty?
-        w = $stdout.winsize[1]
-        width = w if w > 0
-      end
-      width
-    end
-
-    # Measure characters while ignoring ANSI control sequences.
-    def width(str) = str.gsub(ANSI_RE, "").length
-
-    # Return word-wrapped text. ANSI width is understood for alignment, but
-    # callers do not wrap live colored regions across lines; help/body text is
-    # plain, and generated colored usage is short enough to stay on one line.
-    def wrap(str, columns)
-      return "" if str.empty?
-
-      lines, words = [], []
-      tokens = str.split(/[ \t\r]+|(\n)/).reject(&:empty?) # words and newlines
-      tokens.each do |word|
-        if word == "\n"
-          lines << words.join(" ")
-          words = []
-          next
-        end
-        if !words.empty? && width("#{words.join(" ")} #{word}") > columns
-          lines << words.join(" ")
-          words = []
-        end
-
-        words << word
-      end
-      lines << words.join(" ") unless words.empty?
-      lines << "" if tokens.last == "\n"
-      lines.join("\n")
-    end
-  end
-end
-# <<< slap/util.rb
 $stderr = $stdout
 def assert_equal(exp, actual)
   raise "expected #{exp.inspect}, got #{actual.inspect}" unless exp == actual
@@ -699,16 +507,9 @@ options = Slap.parse(argv) do |o|
   o.str "--name", "name"
 end
 
-assert_equal "Lee", options[:name]
-assert_equal ["file"], options[:_args]
-assert_equal ["--name", "Lee", "file"], argv
-
 options = Slap.parse(["-n", "first", "--name", "last"]) do |o|
   o.str "-n", "--name", "name", default: "default"
 end
-
-assert_equal "last", options[:name]
-assert_equal [], options[:_args]
 
 options = Slap.parse([]) do |o|
   o.naked = false
@@ -840,25 +641,6 @@ assert_equal "Lee", options[:name]
 assert_equal "https://example.test", options[:url]
 assert_equal ["file"], options[:_args]
 
-options = Slap.parse(["--", "https://example.test", "--literal"]) do |o|
-  o.positional "<url>", "URL"
-end
-
-assert_equal "https://example.test", options[:url]
-assert_equal ["--literal"], options[:_args]
-
-options = Slap.parse([""]) { _1.naked = false }
-assert_equal [""], options[:_args]
-
-options = Slap.parse(["source.txt", "copy.txt", "extra.txt"]) do |o|
-  o.positional "<source>"
-  o.positional "<destination>"
-end
-
-assert_equal "source.txt", options[:source]
-assert_equal "copy.txt", options[:destination]
-assert_equal ["extra.txt"], options[:_args]
-
 options = Slap.parse(["--timeout", "5"]) do |o|
   o.int "--timeout <seconds>"
 end
@@ -915,7 +697,7 @@ scientific_values.each do |value|
   options = Slap.parse(["--scientific", value]) do |o|
     o.float "--scientific"
   end
-  assert_equal Float(value), options[:scientific]
+assert_equal Float(value), options[:scientific]
 end
 
 #
