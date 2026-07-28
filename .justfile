@@ -14,7 +14,7 @@ demo:
 
 test:
   just test-cruby
-  just test-spinel
+  just test-spin
   just test-bats
   just banner "done"
 
@@ -27,9 +27,12 @@ test-cruby:
   just banner "test-cruby..."
   bin/test-cruby
 
-test-spinel:
-  just banner "test-spinel..."
-  spin test
+test-spin *ARGS:
+  just banner "test-spin..."
+  /usr/local/bin/spin test test/*_test.rb {{ARGS}}
+
+test-regen:
+  just test-spin --regen
 
 test-watch:
   watchexec --clear=reset "just test"

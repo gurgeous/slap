@@ -1,0 +1,10 @@
+Usage: slap [options] <url>
+
+  --verbose     verbose output
+  --name <str>
+  -h, --help    Show this message
+Custom help
+slap 1.2.3
+slap 1.2
+slap: try 'slap --help' for more information
+ok
