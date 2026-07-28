@@ -1,11 +1,15 @@
-# Bug: assigning `$stderr = $stdout` can segfault in a larger parser-shaped program.
+# Bug: assigning `$stderr = $stdout` can segfault on Ubuntu in a larger
+# parser-shaped program.
 # Bad line (UNREDUCED): `$stderr = $stdout`
 #
 # Ruby result:
 #   status 0, prints ok
 #
-# Spinel result:
+# Spinel result on Ubuntu:
 #   status 139, Segmentation fault
+#
+# Spinel result on other platforms:
+#   may pass; crash is currently known to be Ubuntu-specific
 #
 # Repro:
 #   ruby spinel_76.rb
@@ -959,4 +963,6 @@ assert_equal 2.5, options[:float]
 assert_equal Pathname.new("tmp/a"), options[:path]
 assert_equal :fast, options[:sym]
 
+# reduce:freeze (do not modify anything below this line)
+raise "FAIL" unless options[:sym] == :fast
 puts "ok"
