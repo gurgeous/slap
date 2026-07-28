@@ -3,7 +3,7 @@ require "slap"
 # SPINEL WORKAROUND: `spin test --regen` captures stdout only, while
 # `spin test` compares stdout+stderr. Route stderr writes through stdout so
 # regenerated snapshots stay valid until https://github.com/matz/spinel/issues/3405
-# is fixed. Do not assign `$stderr = $stdout`; see spinel_75.rb.
+# is fixed. Do not assign `$stderr = $stdout`; see spinel_76.rb.
 class TestStderr
   def write(value) = $stdout.write(value)
   def puts(value = "") = $stdout.puts(value)
