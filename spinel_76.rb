@@ -1,27 +1,8 @@
-# Bug: assigning `$stderr = $stdout` can segfault in a help/parser-shaped program.
-# Bad line (UNREDUCED): `$stderr = $stdout`
-#
-# Ruby result:
-#   status 0, prints help output and ok
-#
-# Spinel result:
-#   status 139, Segmentation fault
-#
-# Repro:
-#   ruby spinel_76.rb
-#   spinel -o build/crash-76 spinel_76.rb
-#   build/crash-76
-#
 
 require "io/console"
 require "ostruct"
 require "pathname"
 require "stringio"
-
-# >>> slap/color.rb
-#
-# A simple color toggle that can format text. If unset infer from stdout.tty.
-#
 
 module Slap
   class Color
@@ -32,7 +13,6 @@ module Slap
       @enabled = enabled.nil? ? $stdout.tty? : enabled
     end
 
-    # one-liners
     def blue(str) = paint(str, 34)
     def cyan(str) = paint(str, 36)
     def green(str) = paint(str, 32)
@@ -48,14 +28,6 @@ module Slap
   end
 end
 
-# <<< slap/color.rb
-
-# >>> slap/config.rb
-#
-# Config users setup with `Slap.parse`. Records flags, positionals, help text,
-# etc.
-#
-
 module Slap
   class Config
     attr_accessor :app_name, :banner, :color, :exit, :help, :naked, :version
@@ -69,7 +41,6 @@ module Slap
       @flags, @positionals, @separators = [], [], []
     end
 
-    # Add a positional param declared as `<url>`.
     def pos(meta, help = "")
       Positional.new(meta:, help:).tap do
         raise ArgumentError, "duplicate positional #{_1.key}" if key?(_1.key)
@@ -78,51 +49,27 @@ module Slap
       end
     end
 
-    # Add separator text at the current point in generated help.
     def sep(text = "")
       [flags.length, text].tap do
         separators << _1
       end
     end
 
-    #
-    # flags
-    #
-
     def bool(*opts, default: nil, required: false)
       add_flag(Flag.new(:bool, opts, default:, required:))
-    end
-
-    def float(*opts, default: nil, required: false, choices: nil)
-      add_flag(Flag.new(:float, opts, default:, required:, choices:))
     end
 
     def int(*opts, default: nil, required: false, choices: nil)
       add_flag(Flag.new(:int, opts, default:, required:, choices:))
     end
 
-    def path(*opts, default: nil, required: false, choices: nil)
-      add_flag(Flag.new(:path, opts, default:, required:, choices:))
-    end
-
     def str(*opts, default: nil, required: false, choices: nil)
       add_flag(Flag.new(:str, opts, default:, required:, choices:))
     end
 
-    def sym(*opts, default: nil, required: false, choices: nil)
-      add_flag(Flag.new(:sym, opts, default:, required:, choices:))
-    end
-
-    # long-form aliases
-    alias_method :boolean, :bool
-    alias_method :integer, :int
-    alias_method :pathname, :path
     alias_method :positional, :pos
     alias_method :separator, :sep
-    alias_method :string, :str
-    alias_method :symbol, :sym
 
-    # handy helpers
     def defaults
       flags.filter_map do
         next if _1.required || _1 == help_flag || _1 == version_flag
@@ -130,13 +77,11 @@ module Slap
       end.to_h
     end
 
-    # one-liners
     def flag(switch) = lookup[switch]
     def flag?(switch) = lookup.key?(switch)
     def key?(key) = lookup.key?(key)
     def required = flags.select(&:required?)
 
-    # Complete one-time setup after the caller has declared overrides.
     def prepare!
       return if @prepared
       @prepared = true
@@ -147,7 +92,6 @@ module Slap
 
     protected
 
-    # Add help/version flags, but only for switches the user did not override.
     def add_builtin(switches, help_text)
       unused = switches.select { !flag?(_1) }
       return if unused.empty?
@@ -155,58 +99,41 @@ module Slap
     end
 
     def add_flag(flag)
-      # dup check
       raise ArgumentError, "reserved flag key: _args" if flag.key == :_args
       raise ArgumentError, "dup flag key: #{flag.key}" if key?(flag.key)
       flag.switches.each do
         raise ArgumentError, "dup flag switch: #{_1}" if flag?(_1)
       end
 
-      # append
       flags << flag
       lookup[flag.key] = flag
       flag.switches.each { lookup[_1] = flag }
 
-      # return flag
       flag
     end
   end
 end
 
-# <<< slap/config.rb
-
-# >>> slap/flag.rb
-#
-# One configured flag, including all switches that invoke it.
-#
-
 module Slap
   class Flag
-    # --foo or -f
     SWITCH_RE = /\A-(\w|-\w[\w-]*)\z/
-    # --foo=bar
     INLINE_RE = /\A-(\w|-\w[\w-]*)=(.*)\z/m
-    # --no-foo
     NEGATE_RE = /\A--no-(\w[\w-]*)\z/
 
-    KINDS = %i[bool float int path str sym]
+    KINDS = %i[bool int str]
 
     attr_reader :choices, :default, :help, :kind, :meta, :required, :switches
 
-    # ctor
     def initialize(kind, opts, default: nil, required: false, choices: nil)
       @choices, @kind, @required = choices, kind, required
 
-      # extract @help from last string
       @switches = opts.dup
       @help = if switch && !switch.start_with?("-")
         switches.pop
       end
 
-      # Extract meta from the final switch, if written as `--port <int>`.
       @meta = build_meta
 
-      # default, with some special handling for bool
       @default = default
       if bool? && default.nil? && !required?
         @default = false
@@ -215,11 +142,6 @@ module Slap
       validate
     end
 
-    #
-    # parsing
-    #
-
-    # Parse a single cli param
     def parse(switch, param)
       if bool?
         raise Error, "option '#{switch}=#{param}' does not take a value" if param
@@ -229,11 +151,8 @@ module Slap
       raise Error, "option '#{switch}' requires a value" if !param
       parsed = begin
         case kind
-        when :float then Float(param)
         when :int then Integer(param, 10)
-        when :path then Pathname.new(param)
         when :str then param
-        when :sym then param.to_sym
         end
       rescue ArgumentError
         raise Error, "invalid value '#{param}' for option '#{switch}'"
@@ -245,17 +164,12 @@ module Slap
       parsed
     end
 
-    #
-    # rendering
-    #
-
     def label(color)
       label = switches.map { color.green(_1) }.join(", ")
       return label unless takes_param?
       "#{label} #{color.yellow("<#{meta}>")}"
     end
 
-    # one-liners
     def bool? = kind == :bool
     def key = @key ||= switch.sub(/^-+/, "").tr("-", "_").to_sym
     def switch = switches.last
@@ -264,12 +178,7 @@ module Slap
 
     protected
 
-    #
-    # validation
-    #
-
     def validate
-      # switches
       raise ArgumentError, "at least one switch is required" if switches.empty?
       switches.each do
         raise ArgumentError, "invalid switch: #{_1}" unless _1.is_a?(String)
@@ -277,14 +186,12 @@ module Slap
       end
       raise ArgumentError, "duplicate switch" unless switches.uniq.length == switches.length
 
-      # params
       raise ArgumentError, "invalid flag kind: #{kind}" unless KINDS.include?(kind)
       raise ArgumentError, "boolean flags do not accept meta" if bool? && meta
       raise ArgumentError, "required must be true or false" unless required == true || required == false
       raise ArgumentError, "required flags cannot have defaults" if required && default != nil
       raise ArgumentError, "invalid default #{default.inspect} for #{kind}" if default != nil && !allowed?(default)
 
-      # choices
       if choices
         raise ArgumentError, "choices must be an array" unless choices.is_a?(Array)
         raise ArgumentError, "choices cannot be empty" if choices.empty?
@@ -294,12 +201,7 @@ module Slap
       end
     end
 
-    #
-    # helpers
-    #
-
     def build_meta
-      # Only the final spelling may carry an inferred `<meta>`.
       if (m = /\A(\S+) <([^>]+)>\z/.match(switch))
         switches[switches.length - 1] = m[1]
         return m[2]
@@ -310,23 +212,12 @@ module Slap
     def allowed?(candidate)
       case kind
       when :bool then candidate == true || candidate == false
-      when :float then candidate.is_a?(Float)
       when :int then candidate.is_a?(Integer)
-      when :path then candidate.is_a?(Pathname)
       when :str then candidate.is_a?(String)
-      when :sym then candidate.is_a?(Symbol)
       end
     end
   end
 end
-
-# <<< slap/flag.rb
-
-# >>> slap/help.rb
-#
-# Renders the generated help text. Most of the fiddly work here is keeping
-# columns aligned while ANSI color is present.
-#
 
 module Slap
   class Help
@@ -339,26 +230,21 @@ module Slap
       @width = (width || Util.termwidth).clamp(60, 100)
     end
 
-    # Render generated help, unless the caller supplied complete help text.
     def to_s
       return config.help if config.help
 
-      # usage: xyz (banner)
       buf = StringIO.new
       buf << banner
       buf << "\n\n"
 
-      # Render each flag with aligned switch labels and wrapped help text.
       label_width = widest_label
       config.flags.each.with_index do |flag, idx|
         buf << separator_text(idx) # sep
 
-        # left
         label = flag.label(color)
         buf << " " * INDENT
         buf << label
 
-        # right
         if flag.help
           buf << " " * (label_width - Util.width(label) + 2)
           indent = INDENT + label_width + 2
@@ -371,7 +257,6 @@ module Slap
       buf.string
     end
 
-    # Build the usage line from the configured app name and positionals.
     def banner
       text = config.banner
       text ||= [color.blue("Usage:"), color.green(config.app_name), "[options]"].tap do
@@ -380,7 +265,6 @@ module Slap
       Util.wrap(text, width)
     end
 
-    # Render separator text at its recorded position between flags.
     def separator_text(position)
       StringIO.new.tap do |buf|
         config.separators.each do |(pos, str)|
@@ -392,34 +276,10 @@ module Slap
       end.string
     end
 
-    # one-liners
     def color = @color ||= Color.new(config.color)
     def widest_label = config.flags.map { Util.width(_1.label(color)) }.max
   end
 end
-
-# <<< slap/help.rb
-
-# >>> slap/main.rb
-#
-# Main entry point and parsing
-#
-#
-# Glossary
-#
-# | term       | meaning                            | example                   |
-# |------------|------------------------------------|---------------------------|
-# | flag       | configured cli flag                | o.int "-p", "--port"      |
-# | switch     | dashed string invoking a flag      | -p or --port              |
-# | key        | result field derived from a switch | --http-port => :http_port |
-# | param      | raw input consumed by a flag       | 8080 from --port=8080     |
-# | -          | -                                  | -                         |
-# | app_name   | program name used in output        | "curl"                    |
-# | banner     | usage text at top of help          | Usage: curl [options]     |
-# | meta       | placeholder shown for a param      | <xxx> from `--port <xxx>` |
-# | positional | configured required param slot     | o.positional "<url>"      |
-# | separator  | help section heading               | "Network:"                |
-#
 
 module Slap
   class Main
@@ -428,7 +288,6 @@ module Slap
     def initialize = @config = Config.new
     def app_name = config.app_name
 
-    # Parse argv and turn internal parser outcomes into CLI behavior.
     def parse(argv)
       config.prepare!
 
@@ -470,24 +329,14 @@ module Slap
 
   class Error < StandardError; end
 
-  # early exits
   class HelpRequested < Exception; end # rubocop:disable Lint/InheritException
   class NakedRequested < Exception; end # rubocop:disable Lint/InheritException
   class VersionRequested < Exception; end # rubocop:disable Lint/InheritException
 
-  # main entry point
   def self.parse(argv = ARGV)
     Main.new.tap { yield _1.config if block_given? }.parse(argv)
   end
 end
-
-# <<< slap/main.rb
-
-# >>> slap/parser.rb
-#
-# Turns argv into a typed result. It knows the CLI grammar but stays away from
-# printing and exiting.
-#
 
 module Slap
   class Parser
@@ -497,7 +346,6 @@ module Slap
       @config = config
     end
 
-    # Reset transient state, parse argv, and assemble the result.
     def parse(argv)
       @options, @queue = config.defaults, argv.dup
       parse_queue
@@ -507,17 +355,11 @@ module Slap
 
     protected
 
-    #
-    # main parser
-    #
-
     def parse_queue
       raise NakedRequested if config.naked? && queue.empty?
 
-      # any non-flags we find below
       operands = []
 
-      # process argv as queue
       while (item = queue.shift)
         case item
         when Flag::SWITCH_RE, Flag::INLINE_RE then parse_switch(item, Regexp.last_match)
@@ -528,25 +370,18 @@ module Slap
         end
       end
 
-      # positionals
       config.positionals.each do
         options[_1.key] = operands.shift
       end
 
-      # _args
       options[:_args] = operands
     end
-
-    #
-    # -x or -x=123 or --xyz or --xyz=123 or --no-xyz
-    #
 
     def parse_switch(item, match)
       switch = "-#{match[1]}"
       param = match[2]
       separator = param ? "=" : ""
 
-      # -x or --xyz?
       if (flag = config.flag(switch))
         builtin!(flag)
         param = queue.shift if flag.takes_param? && separator.empty?
@@ -554,7 +389,6 @@ module Slap
         return
       end
 
-      # --no-xyz?
       if (neg = find_negated_flag(switch))
         raise Error, "option '#{item}' does not take a value" if separator == "="
         options[neg.key] = false
@@ -564,12 +398,6 @@ module Slap
       raise Error, "unexpected argument '#{item}' found"
     end
 
-    #
-    # smashed flags
-    #
-
-    # Expand short-switch groups such as `-qv`. A parameter-taking switch ends
-    # the group and consumes either its attached suffix or the next queue item.
     def parse_smashed(group)
       (1...group.length).each do |idx|
         switch = "-#{group[idx]}"
@@ -577,7 +405,6 @@ module Slap
         raise Error, "unexpected argument '#{group}' found" unless flag
         builtin!(flag)
 
-        # For `-qnLee`, `Lee` belongs to `-n`; for `-qn Lee`, shift the queue.
         if flag.takes_param?
           param = if idx + 1 < group.length
             group[idx + 1...group.length]
@@ -588,14 +415,9 @@ module Slap
           return
         end
 
-        # bool
         options[flag.key] = true
       end
     end
-
-    #
-    # helpers
-    #
 
     def builtin!(flag)
       raise HelpRequested if flag == config.help_flag
@@ -620,13 +442,6 @@ module Slap
   end
 end
 
-# <<< slap/parser.rb
-
-# >>> slap/positional.rb
-#
-# A required positional param like `<url>`.
-#
-
 module Slap
   class Positional
     POSITIONAL_RE = /\A<([A-Z][\w_]*)>\z/i
@@ -640,17 +455,9 @@ module Slap
       raise ArgumentError, "positional must use <meta>" unless POSITIONAL_RE.match?(meta)
     end
 
-    # one-liners
     def key = @key ||= POSITIONAL_RE.match(meta)[1].to_sym
   end
 end
-
-# <<< slap/positional.rb
-
-# >>> slap/util.rb
-#
-# Shared helpers
-#
 
 module Slap
   module Util
@@ -658,7 +465,6 @@ module Slap
 
     ANSI_RE = /\e\[[\d;]*m/
 
-    # Calculate terminal width, defaulting to 80.
     def termwidth
       width = 80
       if $stdout.tty?
@@ -668,12 +474,8 @@ module Slap
       width
     end
 
-    # Measure characters while ignoring ANSI control sequences.
     def width(str) = str.gsub(ANSI_RE, "").length
 
-    # Return word-wrapped text. ANSI width is understood for alignment, but
-    # callers do not wrap live colored regions across lines; help/body text is
-    # plain, and generated colored usage is short enough to stay on one line.
     def wrap(str, columns)
       return "" if str.empty?
 
@@ -699,23 +501,10 @@ module Slap
   end
 end
 
-# <<< slap/util.rb
-
 $stderr = $stdout
-
-def assert(value, message = "expected truthy")
-  raise message unless value
-end
 
 def assert_equal(exp, actual)
   raise "expected #{exp.inspect}, got #{actual.inspect}" unless exp == actual
-end
-
-def assert_raises(error_class)
-  yield
-  raise "expected #{error_class}"
-rescue error_class => e
-  e
 end
 
 def help_text(config, width = nil)
@@ -724,16 +513,16 @@ def help_text(config, width = nil)
 end
 
 config = Slap::Config.new
-config.app_name = "slap"
-config.version = "1.2.3"
-config.separator "Connection:"
-config.str "-H", "--host <name>", "hostname"
-config.int "-p", "--port", "port"
+config.app_name = "a"
+config.version = "1"
+config.separator "C:"
+config.str "-H", "--host <n>", "h"
+config.int "-p", "--port", "p"
 config.sep
-config.bool "--quiet", "suppress output"
-config.positional "<url>", "URL"
+config.bool "--q", "q"
+config.positional "<u>", "u"
 
-expected = "Usage: slap [options] <url>\n\nConnection:\n  -H, --host <name>  hostname\n  -p, --port <int>   port\n\n  --quiet            suppress output\n  -h, --help         Show this message\n  -v, --version      Show version\n"
+expected = "Usage: a [options] <u>\n\nC:\n  -H, --host <n>    h\n  -p, --port <int>  p\n\n  --q               q\n  -h, --help        Show this message\n  -v, --version     Show version\n"
 assert_equal expected, help_text(config)
 
 banner = Slap::Config.new
@@ -763,8 +552,8 @@ assert_equal color_off_expected, Slap::Help.new(color).to_s
 
 wrap = Slap::Config.new
 wrap.app_name = "slap"
-wrap.str "--long", "one two three four five six seven eight nine ten eleven twelve thirteen"
-wrap_expected = "Usage: slap [options]\n\n  --long <str>  one two three four five six seven eight nine\n                ten eleven twelve thirteen\n  -h, --help    Show this message\n"
+wrap.str "--long", "one two three four five six seven eight nine ten"
+wrap_expected = "Usage: slap [options]\n\n  --long <str>  one two three four five six seven eight nine\n                ten\n  -h, --help    Show this message\n"
 assert_equal wrap_expected, help_text(wrap, 60)
 assert_equal wrap_expected, Slap::Help.new(wrap, 1).to_s
 assert_equal Slap::Help.new(wrap, 100).to_s, Slap::Help.new(wrap, 1_000).to_s
@@ -776,13 +565,6 @@ separators.separator "Second:"
 separators.bool "--quiet", "suppress output"
 separators_expected = "Usage: slap [options]\n\nFirst:\nSecond:\n  --quiet     suppress output\n  -h, --help  Show this message\n"
 assert_equal separators_expected, help_text(separators)
-
-override = Slap::Config.new
-override.app_name = "app"
-override.version = "1.0.0"
-override.bool "-v", "verbose output"
-override_expected = "Usage: app [options]\n\n  -v          verbose output\n  -h, --help  Show this message\n  --version   Show version\n"
-assert_equal override_expected, help_text(override)
 
 status = nil
 error = true
@@ -829,17 +611,5 @@ Slap.parse(["-v"]) do |o|
   o.exit = ->(value) { status = value }
 end
 assert_equal 0, status
-
-status = nil
-error = true
-Slap.parse([]) do |o|
-  o.app_name = "slap"
-  o.exit = ->(value, message) {
-    status = value
-    error = message
-  }
-end
-assert_equal 0, status
-raise "wrong error" if error
 
 puts "ok"
