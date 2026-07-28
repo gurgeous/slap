@@ -14,6 +14,9 @@
 
 1. Run `just test` after every change, except changes limited to `reduce`.
 2. Announce Spinel workaround/type-sensitive changes before testing.
+3. Normal Ruby tests should end with `puts "ok"` by convention.
+4. Use `just test-regen` only when intentionally updating snapshots; review generated `*.expected` files before committing them.
+5. Tests may use stdout/stderr when that behavior matters, but prefer `assert_equal`/`assert_raises` for ordinary library assertions.
 
 # Spinel
 
