@@ -38,10 +38,6 @@ test-watch:
 # spinel
 #
 
-spinel-pull:
-  cd ../spinel && git pull
-  just spinel-install
-
 spinel-check:
   bin/spinel-check
 
@@ -56,8 +52,12 @@ spinel-watch *ARGS:
 ci: spinel-install check
 
 spinel-install:
-  git clone https://github.com/matz/spinel.git ../spinel
-  (cd ../spinel && make deps && make)
+  if [ -d ../spinel ]; then \
+    git -C ../spinel pull; \
+  else \
+    git clone https://github.com/matz/spinel.git ../spinel; \
+  fi
+  (cd ../spinel && make deps && make && sudo make install)
   spinel --version
 
 #
