@@ -1,12 +1,5 @@
 require "slap"
 
-# SPINEL WORKAROUND, see spinel_76.md
-class TestStderr
-  def write(value) = $stdout.write(value)
-  def puts(value = "") = $stdout.puts(value)
-end
-$stderr = TestStderr.new
-
 #
 # helpers
 #
