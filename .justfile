@@ -29,7 +29,7 @@ test-cruby:
 
 test-spin *ARGS:
   just banner "test-spin..."
-  $(command -v spin) test test/*_test.rb {{ARGS}}
+  /usr/local/bin/spin test test/*_test.rb {{ARGS}}
 
 test-regen:
   just test-spin --regen
