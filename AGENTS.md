@@ -32,3 +32,4 @@
 10. Preserve reported C warnings during reduction.
 11. Before repro/reduction, record Ruby/Spinel commands, statuses, and full Spinel stderr; candidates must match stderr byte-for-byte.
 12. Inline dependencies one at a time, checking the baseline each time. Stop after a complete pass gains under 50 bytes or 1%, then recheck the final artifact.
+13. Do not run automated reduction unless explicitly asked; use logic and small targeted repros on this machine.
