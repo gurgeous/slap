@@ -1,4 +1,0 @@
-interface:
-  display_name: "Logical Reduction"
-  short_description: "Reduce repros by reasoned, verified semantic cuts."
-  default_prompt: "Use logical reduction on this repro."
