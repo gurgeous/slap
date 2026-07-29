@@ -1,5 +1,7 @@
 require_relative "test_helper"
 
+assert File.read("spin.toml").include?("version = \"#{Slap::VERSION}\""), "version mismatch"
+
 # Adapted from ../slop/test/slop_test.rb. Only Slap.parse is retained.
 options = Slap.parse(["--name", "Lee"]) do |o|
   o.str "--name"
