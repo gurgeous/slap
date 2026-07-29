@@ -2,7 +2,7 @@
 
 # Slap
 
-Slap is a [spinel](https://github.com/matz/spinel) library for parsing cli arguments. `slap` combines the best bits from [slop rb](https://github.com/leejarvis/slop) and [clap rs](https://github.com/clap-rs/clap).
+Slap is a [spinel](https://github.com/matz/spinel) package for parsing cli arguments. `slap` combines the best bits from [slop rb](https://github.com/leejarvis/slop) and [clap rs](https://github.com/clap-rs/clap).
 
 ### Caution
 
