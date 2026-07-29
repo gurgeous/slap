@@ -2,7 +2,7 @@
 
 # Slap
 
-Slap is a [spinel](https://github.com/matz/spinel) library for parsing cli arguments. `slap` takes the best bits from [slop](https://github.com/leejarvis/slop) and [clap](https://github.com/clap-rs/clap).
+Slap is a [spinel](https://github.com/matz/spinel) library for parsing cli arguments. `slap` combines the best bits from [slop rb](https://github.com/leejarvis/slop) and [clap rs](https://github.com/clap-rs/clap).
 
 ### Caution
 
@@ -18,6 +18,14 @@ Both spinel and slap are alpha quality as of July '26. Slap is a proof of concep
 - returns OpenStruct (not hash)
 
 If there is interest I can release this as a rubygem, though there are already many great cruby cli gems.
+
+### Installation
+
+```toml
+# spin.toml
+[dependencies]
+slap = { git = "https://github.com/gurgeous/spinel-slap" }
+```
 
 ### Usage
 
@@ -56,6 +64,8 @@ $ demo -L -m 8 --style json --force https://example.com
 >
 ```
 
-### Spinel
+### Changelog
 
-This repo includes some half-baked bin/ scripts for identifying and shrinking spinel bugs. Some spinel issues are difficult to repro in a simple way, and these scripts helped immensely. You may also see important spinel bugs called out in `spinel_xx.rb` files, where they remain until fixed in spinel.
+#### 0.1.0 (unreleased)
+
+- initial release (planned)
