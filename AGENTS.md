@@ -18,6 +18,7 @@
 4. Normal `test/*_test.rb` files should end with `puts "ok"`.
 5. Use `just test-regen` only when intentionally updating snapshots. Review generated `*.expected` files before committing them.
 6. Tests may use stdout/stderr when that behavior matters. Prefer `assert_equal`/`assert_raises` for ordinary library assertions.
+7. After local `just test` passes, merge without waiting for CI; CI installs Spinel and is slow.
 
 # Spinel Repros
 
